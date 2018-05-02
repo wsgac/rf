@@ -8,4 +8,6 @@
   :serial t
   :depends-on (#:matplotlib-cl)
   :components ((:file "package")
+               (:file "utilities")
+               (:file "odedr-wanner-hairer")
                (:file "rf")))
