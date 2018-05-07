@@ -6,7 +6,8 @@
   :license  "GPLv3"
   :version "0.0.1"
   :serial t
-  :depends-on (#:matplotlib-cl)
+  :depends-on (;; #:matplotlib-cl
+               )
   :components ((:file "package")
                (:file "utilities")
                (:file "odedr-wanner-hairer")

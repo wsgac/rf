@@ -17,6 +17,7 @@
 ;;;;;;;;;;;;
 
 ;; DOPRI5 Coefficients
+(defparameter nmax_dopri5 10000)
 (defparameter c2 (/ 1.0 18.0))          ; Taken from DOPRI8
 (defparameter cc2 (/ 1.0 5.0))
 (defparameter cc3 (/ 3.0 10.0))
@@ -50,20 +51,22 @@
 (defparameter dd1 (/ -1.0 40.0))
 
 
-(defun dopri5 (n fn x y xend epsilon hmax h iflag)
+(defun dopri5 (n fn x y xend epsilon hmax h ;iflagdopri5
+               )
   "Implement the DOPRI5 method of solving systems of ODEs
 
    Parameter description:
    
    N - number of equations in a system
-   FN - function of the system of equations
+   FN - function of the system of equations (must take the arguments:
+   N, X, Y, YP and return the modified YP vector)
    X - initial value of the independent variable
    Y - array (of size N) of initial values of solutions
    XEND - final value of the independent variable
    EPSILON - precision of the solutions
    HMAX - maximum step of the independent variable
    H - guessed step of the independent variable
-   IFLAG - has XEND been reached after a specific number of steps
+   ;;IFLAGDOPRI5 - has XEND been reached after a specific number of steps
    (0 - done; 1 - not done, continue integration; 2 - probably a stiff
    system, change method)"
   (let* ((ydopri1 (make-array n :initial-element 0))
@@ -79,10 +82,98 @@
          (h (sign h posneg))
          (epsilon (max epsilon (* 7.0 uround)))
          (reject_dopri5 nil)
+         (xph 0.0)
+         (err 0.0)
+         (denom 0.0)
+         (fac 0.0)
+         (hnew 0.0)
          (nstep 0)
          (nfcn 0)
          (naccept 0)
-         (nreject 0))))
+         (nreject 0))
+    (loop
+       do
+         (when (> nstep nmax_dopri5)
+           (setf iflagdopri5 1)
+           (return (values iflagdopri5)))
+         (when (= x (+ x (* 0.1 h)))
+           (setf iflagdopri5 2)
+           (return (values iflagdopri5)))
+         (when (> (+ uround (* posneg (- x xend))) 0.0)
+           (return (values iflagdopri5)))
+         (when (> (* posneg (+ x h (- xend))) 0.0)
+           (setf h (- xend x)))
+       ;; Series of FN invocations
+         (setf kdopri1 (funcall fn n x y kdopri1))
+         (incf nstep)
+         (setf ydopri1 (map 'vector
+                            (lambda (el) (+ y (* h aa21 el)))
+                            kdopri1))
+         (setf kdopri2 (funcall fn n (+ x (* cc2 h)) ydopri1 kdopri2))
+         (setf ydopri1 (map 'vector
+                            (lambda (el1 el2) (+ y (* h (+ (* aa31 el1) (* aa32 el2)))))
+                            kdopri1 kdopri2))
+         (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
+         (setf ydopri1 (map 'vector
+                            (lambda (el1 el2 el3)
+                              (+ y (* h (+ (* aa41 el1) (* aa42 el2) (* aa43 el3)))))
+                            kdopri1 kdopri2 kdopri3))
+         (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
+         (setf ydopri1 (map 'vector
+                            (lambda (el1 el2 el3 el4)
+                              (+ y (* h (+ (* aa51 el1) (* aa52 el2) (* aa53 el3) (* aa54 el4)))))
+                            kdopri1 kdopri2 kdopri3 kdopri4))
+         (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
+         (setf ydopri1 (map 'vector
+                            (lambda (el1 el2 el3 el4 el5)
+                              (+ y (* h (+ (* aa61 el1) (* aa62 el2) (* aa63 el3) (* aa64 el4) (* aa65 el5)))))
+                            kdopri1 kdopri2 kdopri3 kdopri4 kdopri5))
+         (setf xph (+ x h))
+         (setf kdopri2 (funcall fn n xph ydopri1 kdopri2))
+         (setf ydopri1 (map 'vector
+                            (lambda (el1 el2 el3 el4 el5)
+                              (+ y (* h (+ (* bb1 el1) (* bb2 el2) (* bb3 el3) (* bb4 el4) (* bb5 el5)))))
+                            kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
+         (setf kdopri2 (map 'vector
+                            (lambda (el1 el2 el3 el4 el5)
+                              (+ (* bb6 el1) (* bb7 el2) (* bb8 el3) (* bb9 el4) (* bb10 el5)))
+                            kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
+         (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
+         (setf kdopri4 (map 'vector
+                            (lambda (el1 el2)
+                              (* h (+ el1 (* dd1 el2))))
+                            kdopri2 kdopri3))
+         (incf nfcn 6)
+         (setf err 0.0)
+         (loop
+            for i from 0 below n
+            do (setf denom (max 1.0e-5
+                                (abs (svref ydopri1 i))
+                                (abs (svref y i))
+                                (/ (* 0.2 uround) epsilon)))
+              (incf err (expt (/ (svref kdopri4 i) denom) 2)))
+         (setf err (sqrt (/ err n)))
+         (setf fac (max 0.1
+                        (min 5.0
+                             (/ (expt (/ err epsilon) 0.2) 0.9))))
+         (setf hnew (/ h fac))
+       ;; Final iteration check
+         (if (< err epsilon)
+             (progn
+               (incf naccept)
+               (setf kdopri1 kdopri3)
+               (setf y ydopri1)
+               (setf x xph)
+               (when (> (abs hnew) hmax)
+                 (setf hnew (* posneg hmax)))
+               (when reject_dopri5
+                 (setf hnew (* posneg (min (abs hnew) (abs h)))))
+               (setf reject_dopri5 nil))
+             (progn
+               (setf reject_dopri5 t)
+               (when (> naccept 1)
+                 (incf nreject))))
+         (setf h hnew))))
 
 ;;;;;;;;;;;;
 ;; DOPRI8 ;;
@@ -177,6 +268,22 @@
 (defparameter bh10 (/ 465885868.0 322736535.0))
 (defparameter bh11 (/ 53011238.0 667516719.0))
 (defparameter bh12 (/ 2.0 45.0))
+
+(defun dopri8 (n fn x y xend epsilon hmax h)
+  "Implement the DOPRI5 method of solving systems of ODEs
+
+   Parameter description:
+   
+   N - number of equations in a system
+   FN - function of the system of equations (must take the arguments:
+   N, X, Y, YP and return the modified YP vector)
+   X - initial value of the independent variable
+   Y - array (of size N) of initial values of solutions
+   XEND - final value of the independent variable
+   EPSILON - precision of the solutions
+   HMAX - maximum step of the independent variable
+   H - guessed step of the independent variable"
+  )
 
 ;;;;;;;;;;
 ;; ODEX ;;
