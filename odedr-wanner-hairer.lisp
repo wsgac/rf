@@ -69,117 +69,120 @@
    ;;IFLAGDOPRI5 - has XEND been reached after a specific number of steps
    (0 - done; 1 - not done, continue integration; 2 - probably a stiff
    system, change method)"
-  (let* ((ydopri1 (make-array n :initial-element 0))
-         (kdopri1 (make-array n :initial-element 0))
-         (kdopri2 (make-array n :initial-element 0))
-         (kdopri3 (make-array n :initial-element 0))
-         (kdopri4 (make-array n :initial-element 0))
-         (kdopri5 (make-array n :initial-element 0))
-         (iflagdopri5 0)
-         (posneg (sign 1.0 (- xend x)))
-         (hmax (abs hmax))
-         (h (min (max 1.0e-4 (abs h)) hmax))
-         (h (sign h posneg))
-         (epsilon (max epsilon (* 7.0 uround)))
-         (reject_dopri5 nil)
-         (xph 0.0)
-         (err 0.0)
-         (denom 0.0)
-         (fac 0.0)
-         (hnew 0.0)
-         (nstep 0)
-         (nfcn 0)
-         (naccept 0)
-         (nreject 0))
-    (loop
-       do
-         (when (> nstep nmax_dopri5)
-           (setf iflagdopri5 1)
-           (return (values iflagdopri5)))
-         (when (= x (+ x (* 0.1 h)))
-           (setf iflagdopri5 2)
-           (return (values iflagdopri5)))
-         (when (> (+ uround (* posneg (- x xend))) 0.0)
-           (return (values iflagdopri5)))
-         (when (> (* posneg (+ x h (- xend))) 0.0)
-           (setf h (- xend x)))
-       ;; Series of FN invocations
-         (setf kdopri1 (funcall fn n x y kdopri1))
-         (incf nstep)
-         (setf ydopri1 (map 'vector
-                            (lambda (el) (+ y (* h aa21 el)))
-                            kdopri1))
-         (setf kdopri2 (funcall fn n (+ x (* cc2 h)) ydopri1 kdopri2))
-         (setf ydopri1 (map 'vector
-                            (lambda (el1 el2) (+ y (* h (+ (* aa31 el1) (* aa32 el2)))))
-                            kdopri1 kdopri2))
-         (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
-         (setf ydopri1 (map 'vector
-                            (lambda (el1 el2 el3)
-                              (+ y (* h (+ (* aa41 el1) (* aa42 el2) (* aa43 el3)))))
-                            kdopri1 kdopri2 kdopri3))
-         (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
-         (setf ydopri1 (map 'vector
-                            (lambda (el1 el2 el3 el4)
-                              (+ y (* h (+ (* aa51 el1) (* aa52 el2) (* aa53 el3) (* aa54 el4)))))
-                            kdopri1 kdopri2 kdopri3 kdopri4))
-         (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
-         (setf ydopri1 (map 'vector
-                            (lambda (el1 el2 el3 el4 el5)
-                              (+ y (* h (+ (* aa61 el1) (* aa62 el2) (* aa63 el3) (* aa64 el4) (* aa65 el5)))))
-                            kdopri1 kdopri2 kdopri3 kdopri4 kdopri5))
-         (setf xph (+ x h))
-         (setf kdopri2 (funcall fn n xph ydopri1 kdopri2))
-         (setf ydopri1 (map 'vector
-                            (lambda (el1 el2 el3 el4 el5)
-                              (+ y (* h (+ (* bb1 el1) (* bb2 el2) (* bb3 el3) (* bb4 el4) (* bb5 el5)))))
-                            kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
-         (setf kdopri2 (map 'vector
-                            (lambda (el1 el2 el3 el4 el5)
-                              (+ (* bb6 el1) (* bb7 el2) (* bb8 el3) (* bb9 el4) (* bb10 el5)))
-                            kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
-         (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
-         (setf kdopri4 (map 'vector
-                            (lambda (el1 el2)
-                              (* h (+ el1 (* dd1 el2))))
-                            kdopri2 kdopri3))
-         (incf nfcn 6)
-         (setf err 0.0)
-         (loop
-            for i from 0 below n
-            do (setf denom (max 1.0e-5
-                                (abs (svref ydopri1 i))
-                                (abs (svref y i))
-                                (/ (* 0.2 uround) epsilon)))
-              (incf err (expt (/ (svref kdopri4 i) denom) 2)))
-         (setf err (sqrt (/ err n)))
-         (setf fac (max 0.1
-                        (min 5.0
-                             (/ (expt (/ err epsilon) 0.2) 0.9))))
-         (setf hnew (/ h fac))
-       ;; Final iteration check
-         (if (< err epsilon)
-             (progn
-               (incf naccept)
-               (setf kdopri1 kdopri3)
-               (setf y ydopri1)
-               (setf x xph)
-               (when (> (abs hnew) hmax)
-                 (setf hnew (* posneg hmax)))
-               (when reject_dopri5
-                 (setf hnew (* posneg (min (abs hnew) (abs h)))))
-               (setf reject_dopri5 nil))
-             (progn
-               (setf reject_dopri5 t)
-               (when (> naccept 1)
-                 (incf nreject))))
-         (setf h hnew))))
+  (prog* (;; Auxiliary arrays
+          (ydopri1 (make-array n :initial-element 0))
+          (kdopri1 (make-array n :initial-element 0))
+          (kdopri2 (make-array n :initial-element 0))
+          (kdopri3 (make-array n :initial-element 0))
+          (kdopri4 (make-array n :initial-element 0))
+          (kdopri5 (make-array n :initial-element 0))
+          ;; Remaining variables
+          (iflagdopri5 0)
+          (posneg (sign 1.0 (- xend x)))
+          (hmax (abs hmax))
+          (h (min (max 1.0e-4 (abs h)) hmax))
+          (h (sign h posneg))
+          (epsilon (max epsilon (* 7.0 uround)))
+          (reject_dopri5 nil)
+          (xph 0.0)
+          (err 0.0)
+          (denom 0.0)
+          (fac 0.0)
+          (hnew 0.0)
+          (nstep 0)
+          (nfcn 0)
+          (naccept 0)
+          (nreject 0))
+   point1
+   (when (> nstep nmax_dopri5)
+     (setf iflagdopri5 1)
+     (return (values iflagdopri5)))
+   (when (= x (+ x (* 0.1 h)))
+     (setf iflagdopri5 2)
+     (return (values iflagdopri5)))
+   (when (> (+ uround (* posneg (- x xend))) 0.0)
+     (return (values iflagdopri5)))
+   (when (> (* posneg (+ x h (- xend))) 0.0)
+     (setf h (- xend x)))
+   ;; Series of FN invocations
+   (setf kdopri1 (funcall fn n x y kdopri1))
+   (incf nstep)
+   (setf ydopri1 (map 'vector
+                      (lambda (el) (+ y (* h aa21 el)))
+                      kdopri1))
+   (setf kdopri2 (funcall fn n (+ x (* cc2 h)) ydopri1 kdopri2))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2) (+ y (* h (+ (* aa31 el1) (* aa32 el2)))))
+                      kdopri1 kdopri2))
+   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3)
+                        (+ y (* h (+ (* aa41 el1) (* aa42 el2) (* aa43 el3)))))
+                      kdopri1 kdopri2 kdopri3))
+   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4)
+                        (+ y (* h (+ (* aa51 el1) (* aa52 el2) (* aa53 el3) (* aa54 el4)))))
+                      kdopri1 kdopri2 kdopri3 kdopri4))
+   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5)
+                        (+ y (* h (+ (* aa61 el1) (* aa62 el2) (* aa63 el3) (* aa64 el4) (* aa65 el5)))))
+                      kdopri1 kdopri2 kdopri3 kdopri4 kdopri5))
+   (setf xph (+ x h))
+   (setf kdopri2 (funcall fn n xph ydopri1 kdopri2))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5)
+                        (+ y (* h (+ (* bb1 el1) (* bb2 el2) (* bb3 el3) (* bb4 el4) (* bb5 el5)))))
+                      kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
+   (setf kdopri2 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5)
+                        (+ (* bb6 el1) (* bb7 el2) (* bb8 el3) (* bb9 el4) (* bb10 el5)))
+                      kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
+   (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
+   (setf kdopri4 (map 'vector
+                      (lambda (el1 el2)
+                        (* h (+ el1 (* dd1 el2))))
+                      kdopri2 kdopri3))
+   (incf nfcn 6)
+   (setf err 0.0)
+   (loop
+      for i from 0 below n
+      do (setf denom (max 1.0e-5
+                          (abs (svref ydopri1 i))
+                          (abs (svref y i))
+                          (/ (* 0.2 uround) epsilon)))
+        (incf err (expt (/ (svref kdopri4 i) denom) 2)))
+   (setf err (sqrt (/ err n)))
+   (setf fac (max 0.1
+                  (min 5.0
+                       (/ (expt (/ err epsilon) 0.2) 0.9))))
+   (setf hnew (/ h fac))
+   ;; Final iteration check
+   (if (< err epsilon)
+       (progn
+         (incf naccept)
+         (setf kdopri1 kdopri3)
+         (setf y ydopri1)
+         (setf x xph)
+         (when (> (abs hnew) hmax)
+           (setf hnew (* posneg hmax)))
+         (when reject_dopri5
+           (setf hnew (* posneg (min (abs hnew) (abs h)))))
+         (setf reject_dopri5 nil))
+       (progn
+         (setf reject_dopri5 t)
+         (when (> naccept 1)
+           (incf nreject))))
+   (setf h hnew)
+   (go point1)))
 
 ;;;;;;;;;;;;
 ;; DOPRI8 ;;
 ;;;;;;;;;;;;
 
 ;; DOPRI8 Coefficients
+(defparameter nmax_dopri8 100000000)
 ;; (defparameter c2 (/ 1.0 18.0))
 (defparameter c3 (/ 1.0 12.0))
 (defparameter c4 (/ 1.0 8.0))
@@ -270,7 +273,7 @@
 (defparameter bh12 (/ 2.0 45.0))
 
 (defun dopri8 (n fn x y xend epsilon hmax h)
-  "Implement the DOPRI5 method of solving systems of ODEs
+  "Implement the DOPRI8 method of solving systems of ODEs
 
    Parameter description:
    
@@ -282,8 +285,204 @@
    XEND - final value of the independent variable
    EPSILON - precision of the solutions
    HMAX - maximum step of the independent variable
-   H - guessed step of the independent variable"
-  )
+   H - guessed step of the independent variable
+
+   This is the implementation of a real-number variant of DOPRI8."
+  (prog* ( ;; Auxiliary arrays
+          (ydopri1 (make-array n :initial-element 0))
+          (kdopri1 (make-array n :initial-element 0))
+          (kdopri2 (make-array n :initial-element 0))
+          (kdopri3 (make-array n :initial-element 0))
+          (kdopri4 (make-array n :initial-element 0))
+          (kdopri5 (make-array n :initial-element 0))
+          (kdopri6 (make-array n :initial-element 0))
+          (kdopri7 (make-array n :initial-element 0))
+          (y11s (make-array n :initial-element 0))
+          (y12s (make-array n :initial-element 0))
+          ;; Remaining variables
+          (iflagdopri8 0)
+          (posneg (sign 1.0 (- xend x)))
+          (hmax (abs hmax))
+          (h (min (max 1.0e-10 (abs h)) hmax))
+          (h (sign h posneg))
+          (epsilon (max epsilon (* 13.0 uround)))
+          (reject_dopri8 nil)
+          (xph 0.0)
+          (err 0.0)
+          (denom 0.0)
+          (fac 0.0)
+          (hnew 0.0)
+          (nstep 0)
+          (nfcn 0)
+          (naccept 0)
+          (nreject 0))
+   point1 ;; Equivalent to 1
+   (when (zerop iflagdopri8)
+     (when (> nstep nmax_dopri8)
+       (setf iflagdopri8 1)
+       (return (values y iflagdopri8)))
+     (when (= x (+ x (* 0.03 h)))
+       (setf iflagdopri8 2)
+       (return (values y iflagdopri8))))
+   (when (> (+ uround (* posneg (- x xend))) 0.0)
+     (return (values y iflagdopri8)))
+   (when (> (* posneg (+ x h (- xend))) 0.0)
+     (setf h (- xend x)))
+   (setf kdopri1 (funcall fn n x y kdopri1))
+   point2 ;; Equivalent to 2
+   (incf nstep)
+   ;; Sequence of function calls
+   (setf ydopri1 (map 'vector
+                      (lambda (el1)
+                        (+ y (* h a21 el1)))
+                      kdopri1))
+   (setf kdopri2 (funcall fn n (+ x (* c2 h)) ydopri1 kdopri2))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2)
+                        (+ y (* h (+ (* a31 el1) (* a32 el2)))))
+                      kdopri1 kdopri2))
+   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2)
+                        (+ y (* h (+ (* a41 el1) (* a43 el2)))))
+                      kdopri1 kdopri3))
+   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3)
+                        (+ y (* h (+ (* a51 el1) (* a53 el2) (* a54 el3)))))
+                      kdopri1 kdopri3 kdopri4))
+   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3)
+                        (+ y (* h (+ (* a61 el1) (* a64 el2) (* a65 el3)))))
+                      kdopri1 kdopri4 kdopri5))
+   (setf kdopri6 (funcall fn n (+ x (* c6 h)) ydopri1 kdopri6))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4)
+                        (+ y (* h (+ (* a71 el1) (* a74 el2) (* a75 el3) (* a76 el4)))))
+                      kdopri1 kdopri4 kdopri5 kdopri6))
+   (setf kdopri7 (funcall fn n (+ x (* c7 h)) ydopri1 kdopri7))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5)
+                        (+ y (* h (+ (* a81 el1) (* a84 el2) (* a85 el3) (* a86 el4) (* a87 el5)))))
+                      kdopri1 kdopri4 kdopri5 kdopri6 kdopri7))
+   (setf kdopri2 (funcall fn n (+ x (* c8 h)) ydopri1 kdopri2))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5 el6)
+                        (+ y (* h (+ (* a91 el1) (* a94 el2) (* a95 el3) (* a96 el4) (* a97 el5) (* a98 el6)))))
+                      kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2))
+   (setf kdopri3 (funcall fn n (+ x (* c9 h)) ydopri1 kdopri3))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3 el4 el5 el6 el7)
+                        (+ y (* h (+ (* a101 el1) (* a104 el2) (* a105 el3) (* a106 el4) (* a107 el5) (* a108 el6) (* a109 el7)))))
+                      kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
+   ;; Some variables
+   ;; y11s=a111*kdopri1+a114*kdopri4+a115*kdopri5+a116*kdopri6+a117*kdopri7+a118*kdopri2+a119*kdopri3
+   ;; y12s=a121*kdopri1+a124*kdopri4+a125*kdopri5+a126*kdopri6+a127*kdopri7+a128*kdopri2+a129*kdopri3
+   ;; kdopri4=a131*kdopri1+a134*kdopri4+a135*kdopri5+a136*kdopri6+a137*kdopri7+a138*kdopri2+a139*kdopri3
+   ;; kdopri5=b1*kdopri1+b6*kdopri6+b7*kdopri7+b8*kdopri2+b9*kdopri3
+   ;; kdopri6=bh1*kdopri1+bh6*kdopri6+bh7*kdopri7+bh8*kdopri2+bh9*kdopri3
+   ;; kdopri2=y11s
+   ;; kdopri3=y12s
+   (setf y11s (map 'vector
+                   (lambda (el1 el2 el3 el4 el5 el6 el7)
+                     (+ (* a111 el1) (* a114 el2) (* a115 el3) (* a116 el4) (* a117 el5) (* a118 el6) (* a119 el7)))
+                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf y12s (map 'vector
+                   (lambda (el1 el2 el3 el4 el5 el6 el7)
+                     (+ (* a121 el1) (* a124 el2) (* a125 el3) (* a126 el4) (* a127 el5) (* a128 el6) (* a129 el7)))
+                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf kdopri4 (map 'vector
+                   (lambda (el1 el2 el3 el4 el5 el6 el7)
+                     (+ (* a131 el1) (* a134 el2) (* a135 el3) (* a136 el4) (* a137 el5) (* a138 el6) (* a139 el7)))
+                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf kdopri5 (map 'vector
+                   (lambda (el1 el2 el3 el4 el5)
+                     (+ (* b1 el1) (* b6 el2) (* b7 el3) (* b8 el4) (* b9 el5)))
+                   kdopri1 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf kdopri6 (map 'vector
+                   (lambda (el1 el2 el3 el4 el5)
+                     (+ (* bh1 el1) (* bh6 el2) (* bh7 el3) (* bh8 el4) (* bh9 el5)))
+                   kdopri1 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf kdopri2 y11s)
+   (setf kdopri3 y12s)
+   ;; Another sequence of function calls
+   (setf kdopri7 (funcall fn n (+ x (* c10 h)) ydopri1 kdopri7))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2)
+                        (+ y (* h (+ (* 1 el1) (* a1110 el2)))))
+                      kdopri2 kdopri7))
+   (setf kdopri2 (funcall fn n (+ x (* c11 h)) ydopri1 kdopri2))
+   (setf xph (+ x h))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3)
+                        (+ y (* h (+ (* 1 el1) (* a1210 el2) (* a1211 el3)))))
+                      kdopri3 kdopri7 kdopri2))
+   (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
+   (setf ydopri1 (map 'vector
+                      (lambda (el1 el2 el3)
+                        (+ y (* h (+ (* 1 el1) (* a1310 el2) (* a1311 el3)))))
+                      kdopri4 kdopri7 kdopri2))
+   (setf kdopri4 (funcall fn n xph ydopri1 kdopri4))
+   (incf nfcn 13)
+   (setf kdopri5 (map 'vector
+                   (lambda (el1 el2 el3 el4 el5)
+                     (+ (* 1 el1) (* b10 el2) (* b11 el3) (* b12 el4) (* b13 el5)))
+                   kdopri5 kdopri7 kdopri2 kdopri3 kdopri4))
+   (setf kdopri6 (map 'vector
+                   (lambda (el1 el2 el3 el4)
+                     (+ (* 1 el1) (* bh10 el2) (* bh11 el3) (* bh12 el4)))
+                   kdopri6 kdopri7 kdopri2 kdopri3))
+
+   (setf err 0.0)
+   (loop
+      for i from 0 below n
+      do (setf denom (max 1.0e-6
+                          (abs (svref kdopri5 i))
+                          (abs (svref y i))
+                          (/ (* 0.2 uround) epsilon)))
+        (incf err (expt (/ (- (svref kdopri5 i) (svref kdopri6 i)) denom) 2)))
+   (setf err (sqrt (/ err n)))
+
+   ;; fac=max((1.0_prec/6.0_prec),min(3.0_prec,(err/eps)**(1.0_prec/8.0_prec)/0.9_prec))
+   ;; hnew=h/fac
+   ;; if(err.gt.eps) go to 51
+   ;; naccept=naccept+1
+   ;; y=kdopri5
+   (setf fac (max (/ 1.0 6.0) (min 3.0 (/ (expt (/ err epsilon) (/ 1.0 8.0)) 0.9))))
+   (setf hnew (/ h fac))
+   (when (> err epsilon)
+     (go point51))
+   (incf naccept)
+   (setf y kdopri5)
+
+   ;; x=xph
+   ;; if(abs(hnew).gt.hmax) hnew=posneg*hmax
+   ;; if(reject_dopri8) hnew=posneg*min(abs(hnew),abs(h))
+   ;; reject_dopri8=.false.
+   ;; h=hnew
+   ;; go to 1
+   (setf x xph)
+   (when (> (abs hnew) hmax)
+     (setf hnew (* posneg hmax)))
+   (when reject_dopri8
+     (setf hnew (* posneg (min (abs hnew) (abs h)))))
+   (setf reject_dopri8 nil)
+   (setf h hnew)
+   (go point1)
+   
+   point51 ;; Equivalent to 51
+   ;; reject_dopri8=.true.
+   ;; h=hnew
+   ;; if(naccept.ge.1)nreject=nreject+1
+   ;; nfcn=nfcn-1
+   ;; go to 2
+   (setf reject_dopri8 t)
+   (setf h hnew)
+   (when (> naccept 1)
+     (incf nreject))
+   (decf nfcn)
+   (go point2)))
 
 ;;;;;;;;;;
 ;; ODEX ;;

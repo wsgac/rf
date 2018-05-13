@@ -3,7 +3,8 @@
 (defpackage #:rf-utilities
   (:nicknames #:rf-utils)
   (:use #:cl)
-  (:export #:sign))
+  (:export #:sign
+           #:vector-linear-combination))
 
 (defpackage #:rf-odedr-wanner-hairer
   (:nicknames #:rf-owh #:rf-odedr)
