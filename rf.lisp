@@ -24,11 +24,12 @@
      with xin = (* -0.5 n-repetition time-delay)
      with xend = (- xin)
      with epsilonabs = epsabs0
+     with cep = (* cep pi)
      for ik from 0 to ikmax
      for k-parallel = (+ kparmin (* (- kparmax kparmin) ik (/ ikmax)))
      do
        (multiple-value-bind (monodromy theta1 theta2 gamma beta eigenvectors iflag)
-           (monodromy-matrix xin xend epsilonabs)
+           (monodromy-matrix xin xend epsilonabs e-amplitude sigma n-cycles k-perpendicular cep basic-shape)
          (let* ((prob-particle (expt (abs (aref monodromy 0 0)) 2))
                 (prob-antiparticle (expt (abs (aref monodromy 1 0)) 2))
                 (unit (abs (- 1.0 prob-particle prob-antiparticle)))
@@ -38,7 +39,7 @@
                                 1.0e-5))
                 (sin2gamma (/ (expt (abs (aref monodromy 0 1)) 2) sin2theta)))
            (format stream "" k-parallel prob-particle prob-antiparticle sin2gamma sin2theta
-                   theta1 theta2 gamma beta unit iflag )))))
+                   theta1 theta2 gamma beta unit iflag monodromy eigenvectors)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Starting parameters ;;

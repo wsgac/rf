@@ -4,7 +4,10 @@
   (:nicknames #:rf-utils)
   (:use #:cl)
   (:export #:sign
-           #:vector-linear-combination))
+           #:vector-linear-combination
+	   #:matrix-row
+	   #:matrix-column
+	   #:argument))
 
 (defpackage #:rf-odedr-wanner-hairer
   (:nicknames #:rf-owh #:rf-odedr)

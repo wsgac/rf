@@ -28,5 +28,18 @@
               sum (* coefficient vc)))
          vectors))
 
+(defun matrix-row (matrix row)
+  (loop
+     for col from 0 below (array-dimension matrix 1)
+     collect (aref matrix row col) into res
+     finally (return (coerce res 'vector))))
 
+(defun matrix-column (matrix col)
+  (loop
+     for row from 0 below (array-dimension matrix 0)
+     collect (aref matrix row col) into res
+     finally (return (coerce res 'vector))))
 
+;; Complex functions
+
+(setf (fdefinition 'argument) #'phase)

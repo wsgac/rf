@@ -479,3 +479,9 @@
 (defparameter safe1 0.65)
 (defparameter safe2 0.94)
 
+;;;;;;;;;;;;;;;;;;;;;;
+;; Monodromy Matrix ;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+(defun monodromy-matrix (xin xend epsilonabs e-amplitude sigma n-cycles k-perpendicular cep basic-shape)
+  )
