@@ -12,6 +12,12 @@
 
 (defparameter uround double-float-epsilon)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;; ;;
+;; ;; Solving Methods ;; ;;
+;; ;;;;;;;;;;;;;;;;;;;;; ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;;;;;;;;;;;
 ;; DOPRI5 ;;
 ;;;;;;;;;;;;
@@ -316,7 +322,9 @@
           (nfcn 0)
           (naccept 0)
           (nreject 0))
+
    point1 ;; Equivalent to 1
+
    (when (zerop iflagdopri8)
      (when (> nstep nmax_dopri8)
        (setf iflagdopri8 1)
@@ -329,7 +337,9 @@
    (when (> (* posneg (+ x h (- xend))) 0.0)
      (setf h (- xend x)))
    (setf kdopri1 (funcall fn n x y kdopri1))
+
    point2 ;; Equivalent to 2
+
    (incf nstep)
    ;; Sequence of function calls
    (setf ydopri1 (map 'vector
@@ -384,26 +394,16 @@
    ;; kdopri6=bh1*kdopri1+bh6*kdopri6+bh7*kdopri7+bh8*kdopri2+bh9*kdopri3
    ;; kdopri2=y11s
    ;; kdopri3=y12s
-   (setf y11s (map 'vector
-                   (lambda (el1 el2 el3 el4 el5 el6 el7)
-                     (+ (* a111 el1) (* a114 el2) (* a115 el3) (* a116 el4) (* a117 el5) (* a118 el6) (* a119 el7)))
-                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
-   (setf y12s (map 'vector
-                   (lambda (el1 el2 el3 el4 el5 el6 el7)
-                     (+ (* a121 el1) (* a124 el2) (* a125 el3) (* a126 el4) (* a127 el5) (* a128 el6) (* a129 el7)))
-                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
-   (setf kdopri4 (map 'vector
-                   (lambda (el1 el2 el3 el4 el5 el6 el7)
-                     (+ (* a131 el1) (* a134 el2) (* a135 el3) (* a136 el4) (* a137 el5) (* a138 el6) (* a139 el7)))
-                   kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3))
-   (setf kdopri5 (map 'vector
-                   (lambda (el1 el2 el3 el4 el5)
-                     (+ (* b1 el1) (* b6 el2) (* b7 el3) (* b8 el4) (* b9 el5)))
-                   kdopri1 kdopri6 kdopri7 kdopri2 kdopri3))
-   (setf kdopri6 (map 'vector
-                   (lambda (el1 el2 el3 el4 el5)
-                     (+ (* bh1 el1) (* bh6 el2) (* bh7 el3) (* bh8 el4) (* bh9 el5)))
-                   kdopri1 kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf y11s (vector-linear-combination (list a111 a114 a115 a116 a117 a118 a119)
+                                         (list kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3)))
+   (setf y12s (vector-linear-combination (list a121 a124 a125 a126 a127 a128 a129)
+                                         (list kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3)))
+   (setf kdopri4 (vector-linear-combination (list a131 a134 a135 a136 a137 a138 a139)
+                                            (list kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2 kdopri3)))
+   (setf kdopri5 (vector-linear-combination (list b1 b6 b7 b8 b9)
+                                            (list kdopri1 kdopri6 kdopri7 kdopri2 kdopri3)))
+   (setf kdopri6 (vector-linear-combination (list bh1 bh6 bh7 bh8 bh9)
+                                            (list kdopri1 kdopri6 kdopri7 kdopri2 kdopri3)))
    (setf kdopri2 y11s)
    (setf kdopri3 y12s)
    ;; Another sequence of function calls
@@ -425,14 +425,10 @@
                       kdopri4 kdopri7 kdopri2))
    (setf kdopri4 (funcall fn n xph ydopri1 kdopri4))
    (incf nfcn 13)
-   (setf kdopri5 (map 'vector
-                   (lambda (el1 el2 el3 el4 el5)
-                     (+ (* 1 el1) (* b10 el2) (* b11 el3) (* b12 el4) (* b13 el5)))
-                   kdopri5 kdopri7 kdopri2 kdopri3 kdopri4))
-   (setf kdopri6 (map 'vector
-                   (lambda (el1 el2 el3 el4)
-                     (+ (* 1 el1) (* bh10 el2) (* bh11 el3) (* bh12 el4)))
-                   kdopri6 kdopri7 kdopri2 kdopri3))
+   (setf kdopri5 (vector-linear-combination (list 1 b10 b11 b12 b13)
+                                            (list kdopri5 kdopri7 kdopri2 kdopri3 kdopri4)))
+   (setf kdopri6 (vector-linear-combination (list 1 bh10 bh11 bh12)
+                                            (list kdopri6 kdopri7 kdopri2 kdopri3)))
 
    (setf err 0.0)
    (loop
@@ -444,24 +440,13 @@
         (incf err (expt (/ (- (svref kdopri5 i) (svref kdopri6 i)) denom) 2)))
    (setf err (sqrt (/ err n)))
 
-   ;; fac=max((1.0_prec/6.0_prec),min(3.0_prec,(err/eps)**(1.0_prec/8.0_prec)/0.9_prec))
-   ;; hnew=h/fac
-   ;; if(err.gt.eps) go to 51
-   ;; naccept=naccept+1
-   ;; y=kdopri5
    (setf fac (max (/ 1.0 6.0) (min 3.0 (/ (expt (/ err epsilon) (/ 1.0 8.0)) 0.9))))
    (setf hnew (/ h fac))
    (when (> err epsilon)
-     (go point51))
+     (go point51))                      ; GOTO
    (incf naccept)
    (setf y kdopri5)
 
-   ;; x=xph
-   ;; if(abs(hnew).gt.hmax) hnew=posneg*hmax
-   ;; if(reject_dopri8) hnew=posneg*min(abs(hnew),abs(h))
-   ;; reject_dopri8=.false.
-   ;; h=hnew
-   ;; go to 1
    (setf x xph)
    (when (> (abs hnew) hmax)
      (setf hnew (* posneg hmax)))
@@ -469,20 +454,16 @@
      (setf hnew (* posneg (min (abs hnew) (abs h)))))
    (setf reject_dopri8 nil)
    (setf h hnew)
-   (go point1)
+   (go point1)                          ; GOTO
    
    point51 ;; Equivalent to 51
-   ;; reject_dopri8=.true.
-   ;; h=hnew
-   ;; if(naccept.ge.1)nreject=nreject+1
-   ;; nfcn=nfcn-1
-   ;; go to 2
+
    (setf reject_dopri8 t)
    (setf h hnew)
    (when (> naccept 1)
      (incf nreject))
    (decf nfcn)
-   (go point2)))
+   (go point2)))                        ; GOTO
 
 ;;;;;;;;;;
 ;; ODEX ;;
@@ -497,3 +478,4 @@
 (defparameter fac4 0.8)
 (defparameter safe1 0.65)
 (defparameter safe2 0.94)
+
