@@ -7,6 +7,7 @@
            #:vector-linear-combination
 	   #:matrix-row
 	   #:matrix-column
+           #:linearize-matrix
 	   #:argument))
 
 (defpackage #:rf-odedr-wanner-hairer

@@ -40,6 +40,29 @@
      collect (aref matrix row col) into res
      finally (return (coerce res 'vector))))
 
+(defun linearize-matrix (matrix &key unpack-complex)
+  "Convert a 2-dimensional array into a flat list of elements in
+   row-major order. If UNPACK-COMPLEX is T, represent complex numbers
+   as pairs of real and imaginary parts."
+  (destructuring-bind (rows columns)
+      (array-dimensions matrix)
+    (loop
+       for row from 0 below rows
+       append (loop
+                 for column from 0 below columns
+                 append (let ((el (aref matrix row column)))
+                          (if unpack-complex
+                              (list (realpart el) (imagpart el))
+                              (list el)))))))
+
 ;; Complex functions
 
 (setf (fdefinition 'argument) #'phase)
+
+;; Misc
+
+(defun sum (arr)
+  (declare (type (vector double-float 5) arr))
+  (loop
+     for el across arr
+     sum el))
