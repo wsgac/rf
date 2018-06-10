@@ -1,6 +1,6 @@
-;;;; odedr-wanner-hairer.lisp
+;;;; dopri.lisp
 
-(in-package #:rf-odedr-wanner-hairer)
+(in-package #:dopri)
 
 ;;;; Methods for solving nonstiff systems of equations. Methods used
 ;;;; herein are described in Ernst Hairer, Gerhard Wanner and Syvert

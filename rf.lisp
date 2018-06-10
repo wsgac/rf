@@ -61,7 +61,14 @@
            for column from 0 below *n-equations*
            for yend = (make-array (* 2 *n-equations*) :initial-element 0)
            do
-             (setf (aref yend (* 2 column)) 1.0)))
+             (setf (aref yend (* 2 column)) 1.0)
+             (let ((y-dopri (dopri::dopri8
+                             (* x *n-equations*) f-system-real xin yend xend epsilonabs jumpmax jumpmax)))
+               (loop
+                  for ic from 0 below *n-equations* by 2
+                  do (setf (aref sout ic)
+                           (complex (aref yend ic) (aref yend (1+ ic)))))
+               (monodromy ))))
     (values monodromy theta1 theta2 gamma beta eigenvectors iflag)))
 
 

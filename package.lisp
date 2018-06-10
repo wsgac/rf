@@ -10,9 +10,9 @@
            #:linearize-matrix
 	   #:argument))
 
-(defpackage #:rf-odedr-wanner-hairer
-  (:nicknames #:rf-owh #:rf-odedr)
+(defpackage #:dopri
+  (:nicknames #:rf-dopri)
   (:use #:cl #:rf-utilities))
 
 (defpackage #:rf
-  (:use #:cl #:rf-utilities #:rf-odedr))
+  (:use #:cl #:rf-utilities #:dopri))
