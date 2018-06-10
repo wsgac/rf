@@ -57,7 +57,7 @@
 (defparameter dd1 (/ -1.0 40.0))
 
 
-(defun dopri5 (n fn x y xend epsilon hmax h ;iflagdopri5
+(defun dopri5 (n fn fn-misc x y xend epsilon hmax h ;iflagdopri5
                )
   "Implement the DOPRI5 method of solving systems of ODEs
 
@@ -65,7 +65,7 @@
    
    N - number of equations in a system
    FN - function of the system of equations (must take the arguments:
-   N, X, Y, YP and return the modified YP vector)
+   N, X, Y, MISC and return the modified YP vector)
    X - initial value of the independent variable
    Y - array (of size N) of initial values of solutions
    XEND - final value of the independent variable
@@ -111,32 +111,32 @@
    (when (> (* posneg (+ x h (- xend))) 0.0)
      (setf h (- xend x)))
    ;; Series of FN invocations
-   (setf kdopri1 (funcall fn n x y kdopri1))
+   (setf kdopri1 (funcall fn n x y fn-misc))
    (incf nstep)
    (setf ydopri1 (map 'vector
                       (lambda (el) (+ y (* h aa21 el)))
                       kdopri1))
-   (setf kdopri2 (funcall fn n (+ x (* cc2 h)) ydopri1 kdopri2))
+   (setf kdopri2 (funcall fn n (+ x (* cc2 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2) (+ y (* h (+ (* aa31 el1) (* aa32 el2)))))
                       kdopri1 kdopri2))
-   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
+   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3)
                         (+ y (* h (+ (* aa41 el1) (* aa42 el2) (* aa43 el3)))))
                       kdopri1 kdopri2 kdopri3))
-   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
+   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4)
                         (+ y (* h (+ (* aa51 el1) (* aa52 el2) (* aa53 el3) (* aa54 el4)))))
                       kdopri1 kdopri2 kdopri3 kdopri4))
-   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
+   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4 el5)
                         (+ y (* h (+ (* aa61 el1) (* aa62 el2) (* aa63 el3) (* aa64 el4) (* aa65 el5)))))
                       kdopri1 kdopri2 kdopri3 kdopri4 kdopri5))
    (setf xph (+ x h))
-   (setf kdopri2 (funcall fn n xph ydopri1 kdopri2))
+   (setf kdopri2 (funcall fn n xph ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4 el5)
                         (+ y (* h (+ (* bb1 el1) (* bb2 el2) (* bb3 el3) (* bb4 el4) (* bb5 el5)))))
@@ -145,7 +145,7 @@
                       (lambda (el1 el2 el3 el4 el5)
                         (+ (* bb6 el1) (* bb7 el2) (* bb8 el3) (* bb9 el4) (* bb10 el5)))
                       kdopri1 kdopri3 kdopri4 kdopri5 kdopri2))
-   (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
+   (setf kdopri3 (funcall fn n xph ydopri1 fn-misc))
    (setf kdopri4 (map 'vector
                       (lambda (el1 el2)
                         (* h (+ el1 (* dd1 el2))))
@@ -278,14 +278,14 @@
 (defparameter bh11 (/ 53011238.0 667516719.0))
 (defparameter bh12 (/ 2.0 45.0))
 
-(defun dopri8 (n fn x y xend epsilon hmax h)
+(defun dopri8 (n fn fn-misc x y xend epsilon hmax h)
   "Implement the DOPRI8 method of solving systems of ODEs
 
    Parameter description:
    
    N - number of equations in a system
    FN - function of the system of equations (must take the arguments:
-   N, X, Y, YP and return the modified YP vector)
+   N, X, Y, MISC and return the modified YP vector)
    X - initial value of the independent variable
    Y - array (of size N) of initial values of solutions
    XEND - final value of the independent variable
@@ -336,7 +336,7 @@
      (return (values y iflagdopri8)))
    (when (> (* posneg (+ x h (- xend))) 0.0)
      (setf h (- xend x)))
-   (setf kdopri1 (funcall fn n x y kdopri1))
+   (setf kdopri1 (funcall fn n x y fn-misc))
 
    point2 ;; Equivalent to 2
 
@@ -346,42 +346,42 @@
                       (lambda (el1)
                         (+ y (* h a21 el1)))
                       kdopri1))
-   (setf kdopri2 (funcall fn n (+ x (* c2 h)) ydopri1 kdopri2))
+   (setf kdopri2 (funcall fn n (+ x (* c2 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2)
                         (+ y (* h (+ (* a31 el1) (* a32 el2)))))
                       kdopri1 kdopri2))
-   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 kdopri3))
+   (setf kdopri3 (funcall fn n (+ x (* c3 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2)
                         (+ y (* h (+ (* a41 el1) (* a43 el2)))))
                       kdopri1 kdopri3))
-   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 kdopri4))
+   (setf kdopri4 (funcall fn n (+ x (* c4 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3)
                         (+ y (* h (+ (* a51 el1) (* a53 el2) (* a54 el3)))))
                       kdopri1 kdopri3 kdopri4))
-   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 kdopri5))
+   (setf kdopri5 (funcall fn n (+ x (* c5 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3)
                         (+ y (* h (+ (* a61 el1) (* a64 el2) (* a65 el3)))))
                       kdopri1 kdopri4 kdopri5))
-   (setf kdopri6 (funcall fn n (+ x (* c6 h)) ydopri1 kdopri6))
+   (setf kdopri6 (funcall fn n (+ x (* c6 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4)
                         (+ y (* h (+ (* a71 el1) (* a74 el2) (* a75 el3) (* a76 el4)))))
                       kdopri1 kdopri4 kdopri5 kdopri6))
-   (setf kdopri7 (funcall fn n (+ x (* c7 h)) ydopri1 kdopri7))
+   (setf kdopri7 (funcall fn n (+ x (* c7 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4 el5)
                         (+ y (* h (+ (* a81 el1) (* a84 el2) (* a85 el3) (* a86 el4) (* a87 el5)))))
                       kdopri1 kdopri4 kdopri5 kdopri6 kdopri7))
-   (setf kdopri2 (funcall fn n (+ x (* c8 h)) ydopri1 kdopri2))
+   (setf kdopri2 (funcall fn n (+ x (* c8 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4 el5 el6)
                         (+ y (* h (+ (* a91 el1) (* a94 el2) (* a95 el3) (* a96 el4) (* a97 el5) (* a98 el6)))))
                       kdopri1 kdopri4 kdopri5 kdopri6 kdopri7 kdopri2))
-   (setf kdopri3 (funcall fn n (+ x (* c9 h)) ydopri1 kdopri3))
+   (setf kdopri3 (funcall fn n (+ x (* c9 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3 el4 el5 el6 el7)
                         (+ y (* h (+ (* a101 el1) (* a104 el2) (* a105 el3) (* a106 el4) (* a107 el5) (* a108 el6) (* a109 el7)))))
@@ -407,23 +407,23 @@
    (setf kdopri2 y11s)
    (setf kdopri3 y12s)
    ;; Another sequence of function calls
-   (setf kdopri7 (funcall fn n (+ x (* c10 h)) ydopri1 kdopri7))
+   (setf kdopri7 (funcall fn n (+ x (* c10 h)) ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2)
                         (+ y (* h (+ (* 1 el1) (* a1110 el2)))))
                       kdopri2 kdopri7))
-   (setf kdopri2 (funcall fn n (+ x (* c11 h)) ydopri1 kdopri2))
+   (setf kdopri2 (funcall fn n (+ x (* c11 h)) ydopri1 fn-misc))
    (setf xph (+ x h))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3)
                         (+ y (* h (+ (* 1 el1) (* a1210 el2) (* a1211 el3)))))
                       kdopri3 kdopri7 kdopri2))
-   (setf kdopri3 (funcall fn n xph ydopri1 kdopri3))
+   (setf kdopri3 (funcall fn n xph ydopri1 fn-misc))
    (setf ydopri1 (map 'vector
                       (lambda (el1 el2 el3)
                         (+ y (* h (+ (* 1 el1) (* a1310 el2) (* a1311 el3)))))
                       kdopri4 kdopri7 kdopri2))
-   (setf kdopri4 (funcall fn n xph ydopri1 kdopri4))
+   (setf kdopri4 (funcall fn n xph ydopri1 fn-misc))
    (incf nfcn 13)
    (setf kdopri5 (vector-linear-combination (list 1 b10 b11 b12 b13)
                                             (list kdopri5 kdopri7 kdopri2 kdopri3 kdopri4)))
@@ -483,5 +483,5 @@
 ;; Monodromy Matrix ;;
 ;;;;;;;;;;;;;;;;;;;;;;
 
-(defun monodromy-matrix (xin xend epsilonabs e-amplitude sigma n-cycles k-perpendicular cep basic-shape)
+#+nil(defun monodromy-matrix (xin xend epsilonabs e-amplitude sigma n-cycles k-perpendicular cep basic-shape)
   )
