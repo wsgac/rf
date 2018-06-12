@@ -91,9 +91,10 @@
                    (c (aref monodromy 1 0))
                    (d (aref monodromy 1 1))
                    (eps 1.0d-7))
-               (multiple-value-bind ()
-                   (angles-unitary a b c d)))))
-    (values monodromy theta1 theta2 gamma beta eigenvectors iflag)))
+               (multiple-value-bind (theta1 theta2 gamma beta eigenvectors)
+                   (angles-unitary a b c d eps)
+                 (values monodromy theta1 theta2 gamma beta eigenvectors ;; iflag
+                         )))))))
 
 
 (defun scaling-factor (tscalemin tscalemax nscale basic-shape sigma n-cycles cep)

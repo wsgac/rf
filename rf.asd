@@ -7,7 +7,7 @@
   :version "0.0.1"
   :serial t
   :depends-on (;; #:matplotlib-cl
-               )
+               #:computable-reals)
   :components ((:file "package")
                (:file "utilities")
                (:file "dopri")

@@ -8,7 +8,8 @@
 	   #:matrix-row
 	   #:matrix-column
            #:linearize-matrix
-	   #:argument))
+	   #:argument
+           #:angles-unitary))
 
 (defpackage #:dopri
   (:nicknames #:rf-dopri)

@@ -59,6 +59,12 @@
 
 (setf (fdefinition 'argument) #'phase)
 
+;; Unitary operator functions
+
+(defun angles-unitary (a b c d eps)
+  (let ((flag 0)
+        ())))
+
 ;; Misc
 
 (defun sum (arr)
