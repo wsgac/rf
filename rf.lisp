@@ -17,7 +17,7 @@
 (defparameter *charge-of-particle* -1.0d0
   "Charge of particle. -1 for electron.")
 
-(defun monodromy (n-repetition e-amplitude sigma n-cycles cep time-delay k-perpendicular ikmax kparmin kparmax
+(defun monodromy-driver (n-repetition e-amplitude sigma n-cycles cep time-delay k-perpendicular ikmax kparmin kparmax
                   &key (basic-shape 11) (epsabs0 1.0e-13) (stream *standard-output*))
   "Driver function for the monodromy method."
   (loop
@@ -244,3 +244,14 @@
                          -2.0           ;kparmin
                          2.0            ;kparmax
                          :epsabs0 1.0e-13))
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;; Wrapper functions ;;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun run-driver (driver-fn input-parameters output-file)
+  (with-open-file (out output-file
+		       :direction :output
+		       :if-exists :supersede)
+    (let ((*standard-output* out))
+      (apply driver-fn input-parameters))))
