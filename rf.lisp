@@ -245,6 +245,32 @@
                          2.0            ;kparmax
                          :epsabs0 1.0e-13))
 
+;; Test
+
+(defparameter *test* '(1              ;n-repetition
+                       0.1            ;e-amplitude
+                       10.0           ;sigma
+                       2              ;n-cycles
+                       0.0            ;cep
+                       200.0          ;time-delay
+                       0.0            ;k-perpendicular
+                       1000          ;ikmax
+                       -2.0           ;kparmin
+                       2.0            ;kparmax
+                       :epsabs0 1.0e-6))
+
+(defparameter *dopri8-test*
+  (list
+   4
+   #'f-system-real
+   (list :SHAPE 11 :K-PERPENDICULAR 0.0 :K-PARALLEL -2.0 :E-AMPLITUDE 0.1 :SCALING-FACTOR 0.9630919418921946d0 :TIME-DELAY 200.0 :N-REPETITION 1 :N-CYCLES 2 :SIGMA 10.0 :CEP 0.0d0)
+   -100.0d0
+   #(0 0 1.0 0)
+   100.0d0
+   1.e-6
+   0.2d0
+   0.2d0))
+
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wrapper functions ;;
 ;;;;;;;;;;;;;;;;;;;;;;;

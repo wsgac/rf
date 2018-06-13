@@ -10,7 +10,8 @@
 ;; General ;;
 ;;;;;;;;;;;;;
 
-(defparameter uround double-float-epsilon)
+;; (defparameter uround double-float-epsilon)
+(defparameter uround 1.0d-8)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;;;;;;;;;;;;;;;;;;;;; ;;
