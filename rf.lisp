@@ -50,9 +50,9 @@
   (let* ((monodromy (make-array `(,*n-equations* ,*n-equations*) :initial-element 0))
          ;; (sout (make-array *n-equations* :initial-element 0))
          ;; (yend (make-array (* 2 *n-equations*) :initial-element 0))
-         (eigenvectors (make-array `(,*n-equations* ,*n-equations*) :initial-element 0))
-         (ysystem (make-array (* 2 *n-equations*) :initial-element 0))
-         (ypsystem (make-array (* 2 *n-equations*) :initial-element 0))
+         ;; (eigenvectors (make-array `(,*n-equations* ,*n-equations*) :initial-element 0))
+         ;; (ysystem (make-array (* 2 *n-equations*) :initial-element 0))
+         ;; (ypsystem (make-array (* 2 *n-equations*) :initial-element 0))
          (jumpmax (/ (- xend xin) 1000.0))
          (jumpguess (/ jumpmax 100.0))
          (nscale (/ (- xend xin) jumpguess))
@@ -76,7 +76,7 @@
            for yend = (make-array (* 2 *n-equations*) :initial-element 0)
            do
              (setf (aref yend (* 2 column)) 1.0)
-             (let ((y-dopri (dopri::dopri8
+             (let ((yend (dopri::dopri8
                              (* 2 *n-equations*) #'f-system-real fn-misc xin yend xend epsilonabs jumpmax jumpmax)))
                (loop
                   for ic from 0 below *n-equations*
@@ -183,10 +183,10 @@
                                          scaling-factor time-delay n-repetition n-cycles sigma cep)))
         (f-omega (func-omega shape tt k-perpendicular k-parallel e-amplitude
                              scaling-factor time-delay n-repetition n-cycles sigma cep)))
-    (setf (aref y-out 0) (+ (* f-epsilon (aref y-in 2)) (* f-omega (aref y-in 3))))
-    (setf (aref y-out 1) (+ (- (* f-epsilon (aref y-in 1))) (* f-omega (aref y-in 4))))
-    (setf (aref y-out 2) (+ (- (* f-epsilon (aref y-in 4))) (- (* f-omega (aref y-in 1)))))
-    (setf (aref y-out 3) (+ (* f-epsilon (aref y-in 3)) (- (* f-omega (aref y-in 2)))))
+    (setf (aref y-out 0) (+ (* f-epsilon (aref y-in 1)) (* f-omega (aref y-in 2))))
+    (setf (aref y-out 1) (+ (- (* f-epsilon (aref y-in 0))) (* f-omega (aref y-in 3))))
+    (setf (aref y-out 2) (+ (- (* f-epsilon (aref y-in 3))) (- (* f-omega (aref y-in 0)))))
+    (setf (aref y-out 3) (+ (* f-epsilon (aref y-in 2)) (- (* f-omega (aref y-in 1)))))
     y-out))
 
 (defun func-epsilon-2 (shape tt k-perpendicular k-parallel e-amplitude scaling-factor time-delay
