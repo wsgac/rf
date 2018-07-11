@@ -9,7 +9,8 @@
 	   #:matrix-column
            #:linearize-matrix
 	   #:argument
-           #:angles-unitary))
+           #:angles-unitary
+           #:intercept-parameters))
 
 (defpackage #:dopri
   (:nicknames #:rf-dopri)

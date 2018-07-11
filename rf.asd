@@ -7,8 +7,10 @@
   :version "0.0.1"
   :serial t
   :depends-on (;; #:matplotlib-cl
-               #:computable-reals)
+               #:computable-reals
+               #:bld-ode)
   :components ((:file "package")
                (:file "utilities")
                (:file "dopri")
-               (:file "rf")))
+               (:file "rf")
+               (:file "rf-test")))

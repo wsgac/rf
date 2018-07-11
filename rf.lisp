@@ -17,6 +17,10 @@
 (defparameter *charge-of-particle* -1.0d0
   "Charge of particle. -1 for electron.")
 
+;;;;;;;;;;;;;
+;; Drivers ;;
+;;;;;;;;;;;;;
+
 (defun monodromy-driver (n-repetition e-amplitude sigma n-cycles cep time-delay k-perpendicular ikmax kparmin kparmax
                   &key (basic-shape 11) (epsabs0 1.0e-13) (stream *standard-output*))
   "Driver function for the monodromy method."
@@ -26,7 +30,7 @@
      with epsilonabs = epsabs0
      with cep = (* cep pi)
      for ik from 0 to ikmax
-     for k-parallel = (+ kparmin (* (- kparmax kparmin) (float ik) (/ ikmax)))
+     for k-parallel = (+ kparmin (* (- kparmax kparmin) (float ik 1.0d0) (/ ikmax)))
      do
        (multiple-value-bind (monodromy theta1 theta2 gamma beta eigenvectors iflag)
            (monodromy-matrix xin xend epsilonabs e-amplitude sigma n-cycles n-repetition
@@ -45,6 +49,10 @@
                            iflag (linearize-matrix monodromy :unpack-complex t)
                            (linearize-matrix eigenvectors :unpack-complex t))))))
 
+;;;;;;;;;;;;;
+;; Helpers ;;
+;;;;;;;;;;;;;
+
 (defun monodromy-matrix (xin xend epsilonabs e-amplitude sigma n-cycles n-repetition
                          k-perpendicular k-parallel time-delay cep basic-shape)
   (let* ((monodromy (make-array `(,*n-equations* ,*n-equations*) :initial-element 0))
@@ -53,8 +61,8 @@
          ;; (eigenvectors (make-array `(,*n-equations* ,*n-equations*) :initial-element 0))
          ;; (ysystem (make-array (* 2 *n-equations*) :initial-element 0))
          ;; (ypsystem (make-array (* 2 *n-equations*) :initial-element 0))
-         (jumpmax (/ (- xend xin) 1000.0))
-         (jumpguess (/ jumpmax 100.0))
+         (jumpmax (/ (- xend xin) 1000.0d0))
+         (jumpguess (/ jumpmax 100.0d0))
          (nscale (/ (- xend xin) jumpguess))
          (scaling-factor (scaling-factor xin xend nscale basic-shape sigma n-cycles cep))
          (fn-misc (list
@@ -73,9 +81,9 @@
         (error "Incorrect field parameters. Scaling factor too small (value: ~a)" scaling-factor)
         (loop
            for column from 0 below *n-equations*
-           for yend = (make-array (* 2 *n-equations*) :initial-element 0)
+           for yend = (make-array (* 2 *n-equations*) :initial-element 0.0d0)
            do
-             (setf (aref yend (* 2 column)) 1.0)
+             (setf (aref yend (* 2 column)) 1.0d0)
              (let ((yend (dopri::dopri8
                              (* 2 *n-equations*) #'f-system-real fn-misc xin yend xend epsilonabs jumpmax jumpmax)))
                (loop
@@ -99,12 +107,13 @@
 
 (defun scaling-factor (tscalemin tscalemax nscale basic-shape sigma n-cycles cep)
   (loop
-     with scaling-factor = 0.0
+     with scaling-factor = 0.0d0
      for is from 0 to nscale
-     for tt = (+ tscalemin (* 1.0 is (/ (- tscalemax tscalemin) nscale)))
+     for tt = (+ tscalemin (* 1.0d0 is (/ (- tscalemax tscalemin) nscale)))
      for value = (abs (electric0 basic-shape tt sigma n-cycles cep))
-     do (when (> value scaling-factor)  ; TODO: Replace with MAX
-          (setf scaling-factor value))
+     ;; do (when (> value scaling-factor)  ; TODO: Replace with MAX
+     ;;      (setf scaling-factor value))
+     do (setf scaling-factor (max scaling-factor value))
      finally (return scaling-factor)))
 
 ;; Generic function approach to calculating the electric field vector
@@ -113,10 +122,10 @@
 
 (defmethod electric0 ((shape (eql 11)) tt sigma n-cycles cep)
   (if (< (abs tt) sigma)
-      (+ (* 0.5 (sin (+ (/ (* 2.0 n-cycles pi tt) sigma) cep)))
-         (* 0.25 (sin (+ (/ (* (+ (* 2.0 n-cycles) 1.0) pi tt) sigma) cep)))
-         (* 0.25 (sin (+ (/ (* (+ (* 2.0 n-cycles) -1.0) pi tt) sigma) cep))))
-      0.0))
+      (+ (* 0.5d0 (sin (+ (/ (* 2.0d0 n-cycles pi tt) sigma) cep)))
+         (* 0.25d0 (sin (+ (/ (* (+ (* 2.0d0 n-cycles) 1.0d0) pi tt) sigma) cep)))
+         (* 0.25d0 (sin (+ (/ (* (+ (* 2.0d0 n-cycles) -1.0d0) pi tt) sigma) cep))))
+      0.0d0))
 
 (defun electric (shape tt e-amplitude sigma time-delay n-cycles n-repetition scaling-factor cep)
   (loop
@@ -248,16 +257,16 @@
 ;; Test
 
 (defparameter *test* '(1              ;n-repetition
-                       0.1            ;e-amplitude
-                       10.0           ;sigma
+                       0.1d0          ;e-amplitude
+                       10.0d0         ;sigma
                        2              ;n-cycles
-                       0.0            ;cep
-                       200.0          ;time-delay
-                       0.0            ;k-perpendicular
-                       1000          ;ikmax
-                       -2.0           ;kparmin
-                       2.0            ;kparmax
-                       :epsabs0 1.0e-6))
+                       0.0d0          ;cep
+                       200.0d0        ;time-delay
+                       0.0d0          ;k-perpendicular
+                       1000           ;ikmax
+                       -2.0d0         ;kparmin
+                       2.0d0          ;kparmax
+                       :epsabs0 1.0d-6))
 
 (defparameter *dopri8-test*
   (list
@@ -265,9 +274,9 @@
    #'f-system-real
    (list :SHAPE 11 :K-PERPENDICULAR 0.0 :K-PARALLEL -2.0 :E-AMPLITUDE 0.1 :SCALING-FACTOR 0.9630919418921946d0 :TIME-DELAY 200.0 :N-REPETITION 1 :N-CYCLES 2 :SIGMA 10.0 :CEP 0.0d0)
    -100.0d0
-   #(0 0 1.0 0)
+   #(0 0 1.0d0 0)
    100.0d0
-   1.e-6
+   1.e-13
    0.2d0
    0.2d0))
 
@@ -281,3 +290,5 @@
 		       :if-exists :supersede)
     (let ((*standard-output* out))
       (apply driver-fn input-parameters))))
+
+

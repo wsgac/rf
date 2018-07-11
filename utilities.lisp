@@ -9,7 +9,7 @@
 (defun sign (a b)
   "Implements a Fortran-like SIGN function. Returns the absolute value
    of A with the sign taken from B."
-  (* (abs a) (signum b)))
+  (* (abs a) (if (minusp b) -1 1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Matrix and vector functions ;;
@@ -158,3 +158,8 @@
   (loop
      for el across arr
      sum el))
+
+(defun intercept-parameters (&rest params)
+  "This is a dummy function existing solely for the purpose of being
+   traceable with an arbitrary list of parameters."
+  (declare (ignorable params)))

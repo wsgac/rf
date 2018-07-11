@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;
 
 ;; (defparameter uround double-float-epsilon)
-(defparameter uround 1.0d-8)
+(defparameter uround 2.2204460492503131d-16)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;;;;;;;;;;;;;;;;;;;;; ;;
@@ -57,7 +57,7 @@
 (defparameter bb10 (/ 22.0 525.0))
 (defparameter dd1 (/ -1.0 40.0))
 
-
+#+nil
 (defun dopri5 (n fn fn-misc x y xend epsilon hmax h ;iflagdopri5
                )
   "Implement the DOPRI5 method of solving systems of ODEs
@@ -113,6 +113,7 @@
      (setf h (- xend x)))
    ;; Series of FN invocations
    (setf kdopri1 (funcall fn n x y fn-misc))
+   point2
    (incf nstep)
    (setf ydopri1 (map 'vector
                       (lambda (el) (+ y (* h aa21 el)))
@@ -310,9 +311,9 @@
           (iflagdopri8 0)
           (posneg (sign 1.0 (- xend x)))
           (hmax (abs hmax))
-          (h (min (max 1.0e-10 (abs h)) hmax))
-          (h (sign h posneg))
-          (epsilon (max epsilon (* 13.0 uround)))
+          (h (sign (min (max 1.0d-10 (abs h)) hmax) posneg))
+          ;; (h (sign h posneg))
+          (epsilon (max epsilon (* 13.0d0 uround)))
           (reject_dopri8 nil)
           (xph 0.0)
           (err 0.0)
@@ -333,9 +334,9 @@
      (when (= x (+ x (* 0.03 h)))
        (setf iflagdopri8 2)
        (return (values y iflagdopri8))))
-   (when (> (+ uround (* posneg (- x xend))) 0.0)
+   (when (> (+ uround (* posneg (- x xend))) 0.0d0)
      (return (values y iflagdopri8)))
-   (when (> (* posneg (+ x h (- xend))) 0.0)
+   (when (> (* posneg (+ x h (- xend))) 0.0d0)
      (setf h (- xend x)))
    ;; (break)
    (setf kdopri1 (funcall fn n x y fn-misc))
@@ -431,7 +432,7 @@
                                             (list kdopri5 kdopri7 kdopri2 kdopri3 kdopri4)))
    (setf kdopri6 (vector-linear-combination (list 1 bh10 bh11 bh12)
                                             (list kdopri6 kdopri7 kdopri2 kdopri3)))
-
+   (intercept-parameters y ydopri1 kdopri1 kdopri2 kdopri3 kdopri4 kdopri5 kdopri6 kdopri7 y11s y12s :nstep nstep :h h :err err :posneg posneg :x x :xend xend :cond (+ uround (* posneg (- x xend))))
    (setf err 0.0)
    (loop
       for i from 0 below n
