@@ -285,6 +285,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun run-driver (driver-fn input-parameters output-file)
+  "This function is the entry point to the whole
+calculation. DRIVER-FN is a function implementing a particular
+calculation driver. To avoid confusion new driver functions should be
+named with a suffix '-driver'. INPUT-PARAMETERS is a list of
+parameters conforming to the signature of DRIVER-FN. Because of the
+relatively large number of these parameters, they are stored in
+variables for convenience. OUTPUT-FILE names the file to which
+computation results are to be written."
   (with-open-file (out output-file
 		       :direction :output
 		       :if-exists :supersede)

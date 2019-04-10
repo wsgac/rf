@@ -1,9 +1,27 @@
-# rf
-### _Wojciech Gac_
+* RF - Dormand-Prince algorithm for solving nonstiff systems of differential equations
 
-This is a project to do ... something.
+** Installation and loading
+   This project is meant to be loaded via Quicklisp. Having cloned the
+   repository, make sure it can be reached by Quicklisp (this might
+   involve pushing a directory pathname to
+   =asdf:*central-registry*=. After that you should be able to do:
+   #+BEGIN_SRC lisp
+     (ql:quickload :rf)
+   #+END_SRC
 
-## License
+** Usage
+   The entry point is the function =run-driver=, which requires
+   passing a driver function, initial parameters and an output file
+   path. After the computation terminates, results should be available
+   in tabulated form in the output file.
 
-Specify license here
+** Motivation
+   This library was written as part of my BSc thesis with the
+   additional hope of demonstrating the use of Common Lisp for
+   scientific computing.
 
+** License
+   This project is licensed under the GNU General Public License v3
+
+** Author
+   Wojciech S. Gac <wojciech.s.gac@gmail.com>
